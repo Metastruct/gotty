@@ -58,7 +58,7 @@ func (server *Server) generateHandleWS(ctx context.Context, cancel context.Cance
 			}
 		}
 
-		log.Printf("New client connected: %s, connections: %d/%d", r.RemoteAddr, num, server.options.MaxConnection)
+		log.Printf("New client connected: %s, connections: %d/%d, query: '%s'", r.RemoteAddr, num, server.options.MaxConnection, r.URL.RawQuery)
 
 		if r.Method != "GET" {
 			http.Error(w, "Method not allowed", 405)
@@ -115,6 +115,14 @@ func (server *Server) processWSConn(ctx context.Context, conn *websocket.Conn) e
 		return errors.Wrapf(err, "failed to parse arguments")
 	}
 	params := query.Query()
+	initparams := params["arg"]
+	urlparams := r.URL.Query()["arg"]
+	if len(initparams) != 0 {
+		if !paramsMatch(initparams, urlparams) {
+			return errors.New("Protocol mismatch")
+		}
+	}
+
 	var slave Slave
 	slave, err = server.factory.New(params)
 	if err != nil {
@@ -232,4 +240,16 @@ func (server *Server) titleVariables(order []string, varUnits map[string]map[str
 	}
 
 	return titleVars
+}
+
+func paramsMatch(p1 []string, p2 []string) bool {
+	if len(p1) != len(p2) {
+		return false
+	}
+	for i := range p1 {
+		if p1[i] != p2[i] {
+			return false
+		}
+	}
+	return true
 }

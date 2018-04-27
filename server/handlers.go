@@ -58,7 +58,7 @@ func (server *Server) generateHandleWS(ctx context.Context, cancel context.Cance
 			}
 		}
 
-		log.Printf("New client connected: %s, connections: %d/%d, query: '%s'", r.RemoteAddr, num, server.options.MaxConnection, r.URL.RawQuery)
+		log.Printf("New client connected: %s, connections: %d/%d, query: '%s'", r.RemoteAddr, num, server.options.MaxConnection, r.URL.String())
 
 		if r.Method != "GET" {
 			http.Error(w, "Method not allowed", 405)
@@ -105,22 +105,9 @@ func (server *Server) processWSConn(ctx context.Context, conn *websocket.Conn, r
 		return errors.New("failed to authenticate websocket connection")
 	}
 
-	queryPath := "?"
+	params := url.Values{}
 	if server.options.PermitArguments && init.Arguments != "" {
-		queryPath = init.Arguments
-	}
-
-	query, err := url.Parse(queryPath)
-	if err != nil {
-		return errors.Wrapf(err, "failed to parse arguments")
-	}
-	params := query.Query()
-	initparams := params["arg"]
-	urlparams := r.URL.Query()["arg"]
-	if len(initparams) != 0 {
-		if !paramsMatch(initparams, urlparams) {
-			return errors.New("Protocol mismatch")
-		}
+		params := r.URL.Query()
 	}
 
 	var slave Slave
@@ -240,16 +227,4 @@ func (server *Server) titleVariables(order []string, varUnits map[string]map[str
 	}
 
 	return titleVars
-}
-
-func paramsMatch(p1 []string, p2 []string) bool {
-	if len(p1) != len(p2) {
-		return false
-	}
-	for i := range p1 {
-		if p1[i] != p2[i] {
-			return false
-		}
-	}
-	return true
 }

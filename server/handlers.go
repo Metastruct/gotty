@@ -105,9 +105,9 @@ func (server *Server) processWSConn(ctx context.Context, conn *websocket.Conn, r
 		return errors.New("failed to authenticate websocket connection")
 	}
 
-	params := url.Values{}
+	var params = url.Values{}
 	if server.options.PermitArguments && init.Arguments != "" {
-		params := r.URL.Query()
+		params = r.URL.Query()
 	}
 
 	var slave Slave
